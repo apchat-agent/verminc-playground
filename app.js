@@ -111,7 +111,12 @@ async function load() {
     stop(
       "Could not start the playground host. Serve this directory with a local static server.",
     );
-  worker.postMessage({ type: "init", compiler, files: bundle.files }, [
+  worker.postMessage({
+    type: "init",
+    compiler,
+    files: bundle.files,
+    warmup: examples.map((example) => example.source),
+  }, [
     compiler,
   ]);
 }

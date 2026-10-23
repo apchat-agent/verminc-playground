@@ -55,6 +55,54 @@
       "label": "Files in memory",
       "source": "i32 main() {\n    // Each harness run owns its working directory and this relative fixture file.\n    u8[16] path = {'n','a','t','i','v','e','_','f','i','l','e','.','t','m','p',0};\n    u8[4] content = {65, 0, 67, 68};\n    u8[8] received;\n    i64 handle = open(&path[0], 1);\n    if handle < 0 { return 10; }\n    i32 written = write(handle, &content[0], 4);\n    close(handle);\n    handle = open(&path[0], 0);\n    if handle < 0 { return 11; }\n    i32 count = read(handle, &received[0], 8);\n    close(handle);\n    print(\"{} {} {} {} {} {}\\n\", written, count,\n          received[0], received[1], received[2], received[3]);\n\n    content[0] = 90;\n    handle = open(&path[0], 1);\n    if handle < 0 { return 12; }\n    written = write(handle, &content[0], 1);\n    close(handle);\n    handle = open(&path[0], 0);\n    if handle < 0 { return 13; }\n    count = read(handle, &received[0], 8);\n    close(handle);\n    print(\"{} {} {}\\n\", written, count, received[0]);\n    return 0;\n}\n",
       "args": []
+    },
+    {
+      "id": "structs",
+      "label": "Structs and pointers",
+      "source": "// Structs, designated initializers and pointers to structs.\nstruct Vec2 { i32 x, y; }\nstruct Body { Vec2 pos; Vec2 vel; }\n\nvoid step(Body* b) {\n    b.pos.x += b.vel.x;\n    b.pos.y += b.vel.y;\n}\n\ni32 main() {\n    Body ball = Body{.pos = Vec2{0, 10}, .vel = Vec2{.x = 3, .y = -2}};\n    for i32 t = 1; t <= 4; t++ {\n        step(&ball);\n        print(\"t={} ball at ({}, {})\\n\", t, ball.pos.x, ball.pos.y);\n    }\n    return 0;\n}\n",
+      "args": []
+    },
+    {
+      "id": "unions",
+      "label": "Tagged unions and switch",
+      "source": "// Tagged unions: each case carries its own data, and switch unpacks it.\nunion Shape { Circle(i32), Rect(i32, i32), Dot }\n\ni32 main() {\n    Shape a = Circle(2);\n    switch a {\n        case Circle(r): { print(\"circle r={} area {}\\n\", r, 3 * r * r); }\n        case Rect(w, h): { print(\"rect {}x{} area {}\\n\", w, h, w * h); }\n        case Dot: { print(\"dot\\n\"); }\n    }\n    Shape b = Rect(3, 4);\n    switch b {\n        case Circle(r): { print(\"circle r={} area {}\\n\", r, 3 * r * r); }\n        case Rect(w, h): { print(\"rect {}x{} area {}\\n\", w, h, w * h); }\n        case Dot: { print(\"dot\\n\"); }\n    }\n    return 0;\n}\n",
+      "args": []
+    },
+    {
+      "id": "generics",
+      "label": "Generics with constraints",
+      "source": "// Generic functions with constraints: one definition, many integer types.\nT largest<T: Integer>(T a, T b) {\n    if a > b { return a; }\n    return b;\n}\n\nT sum_to<T: Signed>(T n) {\n    if n == 0 { return 0; }\n    return n + sum_to<T>(n - 1);\n}\n\ni32 main() {\n    print(\"{} {}\\n\", largest<i32>(7, 42), largest<u8>(200, 100));\n    print(\"{} {}\\n\", sum_to<i32>(10), sum_to<i64>(100));\n    return 0;\n}\n",
+      "args": []
+    },
+    {
+      "id": "callbacks",
+      "label": "Functions as values",
+      "source": "// Functions are values: store them in variables and pass them around.\ni32 square(i32 x) { return x * x; }\ni32 negate(i32 x) { return -x; }\n\nvoid apply_all(fn(i32):i32 f, i32* xs, i32 n) {\n    for i32 i = 0; i < n; i++ { xs[i] = f(xs[i]); }\n}\n\ni32 main() {\n    i32[4] xs = {1, 2, 3, 4};\n    apply_all(square, &xs[0], 4);\n    apply_all(negate, &xs[0], 4);\n    print(\"{} {} {} {}\\n\", xs[0], xs[1], xs[2], xs[3]);\n    fn(i32):i32 chosen = square;\n    print(\"{}\\n\", chosen(12));\n    return 0;\n}\n",
+      "args": []
+    },
+    {
+      "id": "slices",
+      "label": "Arrays and slices",
+      "source": "// Arrays and slices: a slice is a view (pointer + length) into an array.\ni32 main() {\n    i32[6] values = {1, 2, 3, 4, 5, 6};\n    []i32 middle = values[1..5];\n    i32 sum = 0;\n    for i32 i = 0; i < middle.len; i++ { sum += middle[i]; }\n    print(\"middle has {} items, sum {}\\n\", middle.len, sum);\n    middle[0] = 100;\n    print(\"writing through the slice changes the array: {}\\n\", values[1]);\n    return 0;\n}\n",
+      "args": []
+    },
+    {
+      "id": "strings",
+      "label": "Strings and format",
+      "source": "// String views and formatting.\nstr middle(str text) { return str{text.data + 1, text.len - 2}; }\n\ni32 main() {\n    str word = \"[minc]\";\n    str inner = middle(word);\n    str line = format(\"{} has {} letters, {} > {} is {}\", inner, inner.len, 3, 2, 3 > 2);\n    print(\"{}\\n\", line);\n    return 0;\n}\n",
+      "args": []
+    },
+    {
+      "id": "memory",
+      "label": "Heap memory",
+      "source": "// Manual memory: alloc and free. Every allocation must be freed exactly once.\ni32 main() {\n    i32* squares = alloc<i32>(5);\n    for i32 i = 0; i < 5; i++ { squares[i] = i * i; }\n    i32 sum = 0;\n    for i32 i = 0; i < 5; i++ { sum += squares[i]; }\n    print(\"squares {} {} {}, sum {}\\n\", squares[1], squares[2], squares[4], sum);\n    free(squares);\n    return 0;\n}\n",
+      "args": []
+    },
+    {
+      "id": "ownership_error",
+      "label": "Ownership error (caught at compile time)",
+      "source": "// The compiler tracks ownership: this program is rejected at compile time.\n// Try deleting the print after free, then run again.\ni32 main() {\n    string s = string(\"short-lived\");\n    free(s);\n    print(\"{}\\n\", s);\n    return 0;\n}\n",
+      "args": []
     }
   ]
 }

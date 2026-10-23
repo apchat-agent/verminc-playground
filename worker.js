@@ -1,4 +1,4 @@
-import { compileAndRun } from "./runner.js";
+import { compileAndRunRetrying, warmUp } from "./runner.js";
 
 let compiler;
 let files;
@@ -7,9 +7,10 @@ self.onmessage = async ({ data }) => {
     if (data.type === "init") {
       compiler = await WebAssembly.compile(data.compiler);
       files = data.files;
+      await warmUp(compiler, files, data.warmup ?? []);
       self.postMessage({ type: "ready" });
     } else if (data.type === "run") {
-      const result = await compileAndRun(compiler, {
+      const result = await compileAndRunRetrying(compiler, {
         source: data.source,
         args: data.args,
         files,
