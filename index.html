@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; style-src 'self'; connect-src 'self'; img-src data:; base-uri 'none'; form-action 'none'">
+    <title>verminc playground</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="style.css">
+    <script type="module" src="app.js"></script>
+  </head>
+  <body data-state="loading">
+    <main>
+      <header><div><p class="eyebrow">MINC · IN YOUR BROWSER</p><h1>verminc playground<span aria-hidden="true">_</span></h1></div><span class="badge">Runs locally</span></header>
+      <p
+        class="intro">Edit a program, compile it, see what happens. Your source stays in this tab.</p>
+      <section class="workspace" aria-label="Program editor and output">
+        <div class="editor-panel">
+          <div
+            class="panel-head"><label for="examples">Start with an example</label><select id="examples" disabled></select></div>
+          <label class="source-label" for="source">main.mc</label>
+          <textarea id="source" spellcheck="false" autocapitalize="off"
+            autocomplete="off" aria-describedby="editor-hint"></textarea>
+          <p id="editor-hint"
+            class="hint">The native compiler supports a subset of minc. Unsupported constructs produce compiler diagnostics.</p>
+          <label
+            for="arguments">Program arguments <span class="optional">optional · JSON array of strings</span></label>
+          <input id="arguments" type="text" value="[]"
+            placeholder='["sample", "17"]' spellcheck="false">
+          <div
+            class="actions"><button id="run" disabled>Run program <span aria-hidden="true">▶</span></button><button id="stop" disabled>Stop</button><span class="shortcut">⌘ / Ctrl + Enter</span></div>
+        </div>
+        <div class="output-panel">
+          <div
+            class="panel-head"><h2>Output</h2><span class="exit">Exit <output id="exit-code">—</output></span></div>
+          <p id="status" role="status" aria-live="polite">Loading compiler…</p>
+          <h3>stdout</h3>
+          <pre id="stdout" tabindex="0" aria-label="Standard output"></pre>
+          <h3>stderr</h3>
+          <pre id="stderr" tabindex="0" aria-label="Standard error"></pre>
+        </div>
+      </section>
+      <footer>Self-hosted compiler · WebAssembly · No requests after loading<br>Files live in memory and reset with each run. Stop or the 30-second limit ends this session; reload to restart.</footer>
+    </main>
+  </body>
+</html>
