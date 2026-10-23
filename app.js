@@ -8,6 +8,9 @@ function state(name, message) {
   document.body.dataset.state = name;
   $("status").textContent = message;
   $("run").disabled = !["ready", "done"].includes(name);
+  $("format").disabled = !["ready", "done"].includes(name);
+  $("source").readOnly = name === "running";
+  $("formatter-source").readOnly = name === "running";
   $("stop").disabled = name !== "running";
   $("examples").disabled = ["loading", "running"].includes(name);
 }
@@ -49,6 +52,16 @@ function run() {
   worker.postMessage({ type: "run", source: $("source").value, args });
 }
 $("run").addEventListener("click", run);
+$("format").addEventListener("click", () => {
+  if ($("format").disabled) return;
+  $("stdout").textContent = "";
+  $("stderr").textContent = "";
+  $("exit-code").textContent = "—";
+  started = performance.now();
+  state("running", "Compiling formatter and formatting…");
+  timer = setTimeout(() => stop("Stopped after 30 seconds. Reload the page to start a new session."), 30000);
+  worker.postMessage({ type: "format", source: $("source").value, formatter: $("formatter-source").value });
+});
 $("stop").addEventListener("click", () => stop());
 $("examples").addEventListener("change", () => {
   const example = examples.find((item) => item.id === $("examples").value);
@@ -79,6 +92,7 @@ async function load() {
     bundleResponse.json(),
   ]);
   examples = bundle.examples;
+  $("formatter-source").value = bundle.formatter;
   for (const example of examples) {
     const option = document.createElement("option");
     option.value = example.id;
@@ -95,10 +109,15 @@ async function load() {
       $("stdout").textContent = data.result.stdout;
       $("stderr").textContent = data.result.stderr;
       $("exit-code").textContent = String(data.result.exitCode);
+      if (data.action === "format" && data.result.phase === "run" && data.result.exitCode === 0) {
+        $("source").value = data.result.stdout;
+      }
       const elapsed = ((performance.now() - started) / 1000).toFixed(2);
       state(
         "done",
-        data.result.phase === "compile"
+        data.action === "format"
+          ? (data.result.exitCode === 0 ? `Formatted in ${elapsed}s.` : "Formatting failed. Program text kept.")
+          : data.result.phase === "compile"
           ? "Compilation failed."
           : `Finished in ${elapsed}s.`,
       );
@@ -115,6 +134,7 @@ async function load() {
     type: "init",
     compiler,
     files: bundle.files,
+    formatter: bundle.formatter,
     warmup: examples.map((example) => example.source),
   }, [
     compiler,

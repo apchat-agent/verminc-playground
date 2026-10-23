@@ -3,9 +3,8 @@ import { runWasi } from "./wasi.js";
 // The browser Worker and Deno acceptance tests use this exact compile/run path.
 export async function compileAndRun(
   compiler,
-  { source, args = [], files = {} },
+  { source, args = [], files = {}, stdin = "", sourcePath = "/workspace/main.mc" },
 ) {
-  const sourcePath = "/workspace/main.mc";
   const outputPath = "/workspace/program.wasm";
   const inputs = { ...files, [sourcePath]: source };
   delete inputs[outputPath];
@@ -45,6 +44,7 @@ export async function compileAndRun(
   const executed = await runWasi(program, {
     args: ["program", ...args],
     files,
+    stdin,
   });
   return {
     phase: "run",
@@ -73,6 +73,17 @@ export async function compileAndRunRetrying(compiler, request, { retries = 8, de
     result = await compileAndRun(compiler, request);
   }
   return result;
+}
+
+// Formatting is an ordinary minc program, compiled from the editable source.
+// Its location keeps the formatter's own relative parser imports valid.
+export async function formatSource(compiler, { formatter, source, files = {} }) {
+  return await compileAndRunRetrying(compiler, {
+    source: formatter,
+    sourcePath: "/workspace/tools/fmt.mc",
+    stdin: source,
+    files,
+  });
 }
 
 // Compiles each source (the bundled examples) until it compiles without a stack overflow, so the engine has

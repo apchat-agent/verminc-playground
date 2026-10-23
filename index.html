@@ -29,7 +29,7 @@
           <input id="arguments" type="text" value="[]"
             placeholder='["sample", "17"]' spellcheck="false">
           <div
-            class="actions"><button id="run" disabled>Run program <span aria-hidden="true">▶</span></button><button id="stop" disabled>Stop</button><span class="shortcut">⌘ / Ctrl + Enter</span></div>
+            class="actions"><button id="run" disabled>Run program <span aria-hidden="true">▶</span></button><button id="format" disabled>Format</button><button id="stop" disabled>Stop</button><span class="shortcut">⌘ / Ctrl + Enter</span></div>
         </div>
         <div class="output-panel">
           <div
@@ -40,6 +40,12 @@
           <h3>stderr</h3>
           <pre id="stderr" tabindex="0" aria-label="Standard error"></pre>
         </div>
+      </section>
+      <section class="formatter-panel" aria-label="Editable formatter">
+        <h2>Formatter source</h2>
+        <p class="hint">Format runs this minc program on the editor text. Edit the indentation width or try your own formatting rules.</p>
+        <label class="source-label" for="formatter-source">tools/fmt.mc</label>
+        <textarea id="formatter-source" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
       </section>
       <footer>Self-hosted compiler · WebAssembly · No requests after loading<br>Files live in memory and reset with each run. Stop or the 30-second limit ends this session; reload to restart.</footer>
     </main>
