@@ -1,4 +1,4 @@
-import { compileAndRunRetrying, formatSource, warmUp } from "./runner.js?v=ba49882";
+import { compileAndRunRetrying, formatSource } from "./runner.js?v=37f0299";
 
 let compiler;
 let files;
@@ -7,7 +7,6 @@ self.onmessage = async ({ data }) => {
     if (data.type === "init") {
       compiler = await WebAssembly.compile(data.compiler);
       files = data.files;
-      await warmUp(compiler, files, data.warmup ?? []);
       const formatted = await formatSource(compiler, { formatter: data.formatter, source: "", files });
       if (formatted.exitCode !== 0) throw new Error(formatted.stderr);
       self.postMessage({ type: "ready" });
