@@ -85,6 +85,12 @@
       "args": []
     },
     {
+      "id": "generic_option",
+      "label": "Generic tagged unions",
+      "source": "// Generic tagged unions: one Option<T> declaration, a separate type for each T.\nunion Option<T> { Some(T), None }\n\nstruct Point { i32 x; i32 y; }\n\ni32 value_or(Option<i32> value, i32 fallback) {\n    switch value {\n        case Some(n): {\n            return n;\n        }\n        case None: {\n            return fallback;\n        }\n    }\n    return fallback;\n}\n\ni32[4] items = {10, 20, 30, 40};\n\nOption<i32> find(i32 wanted) {\n    for i32 i = 0; i < 4; i++ {\n        if items[i] == wanted {\n            return Some(i);\n        }\n    }\n    return None;\n}\n\ni32 main() {\n    print(\"index of 30: {}\\n\", value_or(find(30), -1));\n    print(\"index of 99: {}\\n\", value_or(find(99), -1));\n\n    Option<Point> corner = Some({3, 4});\n    switch corner {\n        case Some(p): {\n            print(\"point: {}, {}\\n\", p.x, p.y);\n        }\n        case None: {\n            print(\"no point\\n\");\n        }\n    }\n    return 0;\n}\n",
+      "args": []
+    },
+    {
       "id": "generics",
       "label": "Generics with constraints",
       "source": "// Generic functions with constraints: one definition, many integer types.\nT largest<T: Integer>(T a, T b) {\n    if a > b { return a; }\n    return b;\n}\n\nT sum_to<T: Signed>(T n) {\n    if n == 0 { return 0; }\n    return n + sum_to<T>(n - 1);\n}\n\ni32 main() {\n    print(\"{} {}\\n\", largest<i32>(7, 42), largest<u8>(200, 100));\n    print(\"{} {}\\n\", sum_to<i32>(10), sum_to<i64>(100));\n    return 0;\n}\n",
