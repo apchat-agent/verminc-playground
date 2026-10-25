@@ -67,6 +67,12 @@
       "args": []
     },
     {
+      "id": "float_fields",
+      "label": "Floats in structs and vectors",
+      "source": "// Floats inside structs, arrays and vectors print just like plain floats.\nstruct Reading {\n    f32 celsius;\n    f64 pressure;\n}\n\ni32 main() {\n    Reading today = Reading{21.5f, 1013.25};\n    f32[3] samples = {0.1f, 100f, 1e20f};\n    print(\"{} {}\\n\", today.celsius, today.pressure);\n    print(\"{} {} {}\\n\", samples[0], samples[1], samples[2]);\n\n    float4 v = float4{1f, 2.5f, -3.125f, 1e-7f};\n    float2 swapped = v.yx;\n    print(\"{} {} {} {}\\n\", v.x, v.y, v.z, v.w);\n    print(\"{} {}\\n\", swapped.x, swapped.y);\n    return 0;\n}\n",
+      "args": []
+    },
+    {
       "id": "file",
       "label": "Files in memory",
       "source": "i32 main() {\n    // Each harness run owns its working directory and this relative fixture file.\n    u8[16] path = {'n','a','t','i','v','e','_','f','i','l','e','.','t','m','p',0};\n    u8[4] content = {65, 0, 67, 68};\n    u8[8] received;\n    i64 handle = open(&path[0], 1);\n    if handle < 0 { return 10; }\n    i32 written = write(handle, &content[0], 4);\n    close(handle);\n    handle = open(&path[0], 0);\n    if handle < 0 { return 11; }\n    i32 count = read(handle, &received[0], 8);\n    close(handle);\n    print(\"{} {} {} {} {} {}\\n\", written, count,\n          received[0], received[1], received[2], received[3]);\n\n    content[0] = 90;\n    handle = open(&path[0], 1);\n    if handle < 0 { return 12; }\n    written = write(handle, &content[0], 1);\n    close(handle);\n    handle = open(&path[0], 0);\n    if handle < 0 { return 13; }\n    count = read(handle, &received[0], 8);\n    close(handle);\n    print(\"{} {} {}\\n\", written, count, received[0]);\n    return 0;\n}\n",
