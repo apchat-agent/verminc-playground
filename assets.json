@@ -169,30 +169,6 @@
       "args": []
     },
     {
-      "id": "allocator",
-      "label": "Your own allocator",
-      "source": "// Replace the allocator: the program sees every alloc, realloc and free (this one always says no).\ni32 asked = 0;\ni32 resized = 0;\ni32 released = 0;\ni64 biggest = 0;\n\nvoid* __minc_alloc(i64 n) {\n    asked++;\n    if n > biggest {\n        biggest = n;\n    }\n    return null;\n}\nvoid __minc_free(void* p) {\n    released++;\n}\nvoid* __minc_realloc(void* p, i64 n) {\n    resized++;\n    return null;\n}\n\ni32 main() {\n    i32* numbers = alloc<i32>(10);\n    if numbers == null {\n        print(\"no memory for 10 numbers\\n\");\n    }\n    void* more = realloc(numbers, 4096);\n    if more == null {\n        print(\"no memory to grow either\\n\");\n    }\n    free(more);\n    print(\"alloc {}, realloc {}, free {}, largest request {} bytes\\n\", asked, resized, released, biggest);\n    return 0;\n}\n",
-      "args": []
-    },
-    {
-      "id": "switch_ranges",
-      "label": "Integer switch and range loops",
-      "source": "// FizzBuzz with a range loop and an integer switch: grouped cases, default, fallthrough.\ni32 kind(i32 n) {\n    switch n % 15 {\n        case 0: {\n            return 3;\n        }\n        case 3, 6, 9, 12: {\n            return 1;\n        }\n        case 5, 10: {\n            return 2;\n        }\n        default: {\n            return 0;\n        }\n    }\n}\n\ni32 main() {\n    for i32 i in 1..16 {\n        switch kind(i) {\n            case 1: {\n                print(\"Fizz \");\n            }\n            case 2: {\n                print(\"Buzz \");\n            }\n            case 3: {\n                print(\"FizzBuzz \");\n            }\n            default: {\n                print(\"{} \", i);\n            }\n        }\n    }\n    print(\"\\n\");\n    // fallthrough also runs the next case's body\n    for i32 level in 0..3 {\n        print(\"level {}:\", level);\n        switch level {\n            case 0: {\n                print(\" boot\");\n                fallthrough;\n            }\n            case 1: {\n                print(\" load\");\n                fallthrough;\n            }\n            default: {\n                print(\" run\");\n            }\n        }\n        print(\"\\n\");\n    }\n    return 0;\n}\n",
-      "args": []
-    },
-    {
-      "id": "enums",
-      "label": "Enums",
-      "source": "// Enums are distinct i32 types: members count up, and cast() converts between them.\nenum Color { RED, GREEN = 4, BLUE }\nenum Shape { DOT, LINE = 7 }\nColor next(Color c) {\n    if c == RED {\n        return GREEN;\n    }\n    return BLUE;\n}\ni32 main() {\n    Color c = next(RED);\n    Shape s = LINE;\n    print(\"{} {} {}\\n\", c, next(c), s);\n    print(\"{} {}\\n\", cast(i32, c) + cast(i32, s), sizeof(Color));\n    return 0;\n}\n",
-      "args": []
-    },
-    {
-      "id": "slice_fill",
-      "label": "Filling slices",
-      "source": "// Filling slices: write several elements at once with a brace list.\ni32[8] shelf;\ni32 main() {\n    shelf[0..3] = {10, 20, 30};\n    shelf[5..] = {60, 70, 80};\n    []i32 top = shelf[5..8];\n    top[1..] = {99, 98};\n    for i32 i in 0..8 {\n        print(\"{} \", shelf[i]);\n    }\n    print(\"\\n\");\n    print(\"the top has {} items, the first is {}\\n\", top.len, top[0]);\n    return 0;\n}\n",
-      "args": []
-    },
-    {
       "id": "ownership_error",
       "label": "Ownership error (caught at compile time)",
       "source": "// The compiler tracks ownership: this program is rejected at compile time.\n// Try deleting the print after free, then run again.\ni32 main() {\n    string s = string(\"short-lived\");\n    free(s);\n    print(\"{}\\n\", s);\n    return 0;\n}\n",
