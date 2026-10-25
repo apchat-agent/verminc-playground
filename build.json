@@ -1,11 +1,11 @@
 {
-  "compiler_sha256": "9e83c267c58c4d727b0130637384eb9c605f781cfd14c424a77ddab8d5386374",
-  "compiler_bytes": 5001662,
-  "native_compiler_sha256": "7fe9811f4d410529eaf4ac502fc58f9ad887bec2f56760078eac44b8f65d0c6b",
-  "assets_sha256": "0ef80fa2aa502fd288f7f4666106ddae5c970158dc776cffc835025b43caf70c",
+  "compiler_sha256": "c830cbeaa7ca3781da5a1a90144c1bccac88da81eb454fa7ff40ac03e90133cf",
+  "compiler_bytes": 5262954,
+  "native_compiler_sha256": "6bd6537104036dab849abe998d8edeb5c327d934fc0f03a373dddfacce5d8678",
+  "assets_sha256": "40334e543d8f499b902cebf0c5ca61e2707a5870cb6dc4792b352a187956be1c",
   "library_modules": 18,
   "formatter_modules": 4,
   "formatter_bytes": 23425,
-  "examples": 14,
+  "examples": 16,
   "build": "Rust native macos -> selfhost native --target wasm; both with empty PATH"
 }

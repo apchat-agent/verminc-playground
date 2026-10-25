@@ -55,6 +55,18 @@
       "args": []
     },
     {
+      "id": "float_display",
+      "label": "Printing floats",
+      "source": "// Floats print with up to six decimals, trailing zeros trimmed; huge and tiny values switch to scientific form.\ni32 main() {\n    f64 third = 1.0 / 3.0;\n    f32 ratio = 2.5f;\n    print(\"{} {} {}\\n\", third, ratio, 100.0);\n    print(\"{} {}\\n\", 1.0e20, 0.0000001);\n    f64 zero = 0.0;\n    print(\"{} {} {}\\n\", 1.0 / zero, -1.0 / zero, zero / zero);\n    return 0;\n}\n",
+      "args": []
+    },
+    {
+      "id": "float_convert",
+      "label": "Floats and integers",
+      "source": "// Integers widen to f64 on their own; going back needs cast(), which truncates toward zero and saturates.\ni32 main() {\n    i32 cents = 1999;\n    f64 dollars = cents;\n    dollars = dollars / 100.0;\n    print(\"{} cents = {} dollars\\n\", cents, dollars);\n    f64 up = 7.9;\n    f64 down = -7.9;\n    print(\"cast(i32, {}) = {}, cast(i32, {}) = {}\\n\", up, cast(i32, up), down, cast(i32, down));\n    f64 huge = 1.0e20;\n    f64 nothing = 0.0 / 0.0;\n    print(\"{} saturates to {}, nan becomes {}\\n\", huge, cast(i32, huge), cast(i32, nothing));\n    u64 big = 9007199254740993;\n    print(\"{} rounds to {} as an f64\\n\", big, cast(u64, cast(f64, big)));\n    return 0;\n}\n",
+      "args": []
+    },
+    {
       "id": "file",
       "label": "Files in memory",
       "source": "i32 main() {\n    // Each harness run owns its working directory and this relative fixture file.\n    u8[16] path = {'n','a','t','i','v','e','_','f','i','l','e','.','t','m','p',0};\n    u8[4] content = {65, 0, 67, 68};\n    u8[8] received;\n    i64 handle = open(&path[0], 1);\n    if handle < 0 { return 10; }\n    i32 written = write(handle, &content[0], 4);\n    close(handle);\n    handle = open(&path[0], 0);\n    if handle < 0 { return 11; }\n    i32 count = read(handle, &received[0], 8);\n    close(handle);\n    print(\"{} {} {} {} {} {}\\n\", written, count,\n          received[0], received[1], received[2], received[3]);\n\n    content[0] = 90;\n    handle = open(&path[0], 1);\n    if handle < 0 { return 12; }\n    written = write(handle, &content[0], 1);\n    close(handle);\n    handle = open(&path[0], 0);\n    if handle < 0 { return 13; }\n    count = read(handle, &received[0], 8);\n    close(handle);\n    print(\"{} {} {}\\n\", written, count, received[0]);\n    return 0;\n}\n",
