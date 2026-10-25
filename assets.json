@@ -115,6 +115,12 @@
       "args": []
     },
     {
+      "id": "defer",
+      "label": "Cleanup with defer",
+      "source": "// defer runs a cleanup when the scope ends, last one first, even on early exits.\ni32 find_first(i32* xs, i32 n, i32 wanted) {\n    defer print(\"  searched for {}\\n\", wanted);\n    for i32 i = 0; i < n; i++ {\n        defer print(\"  checked slot {}\\n\", i);\n        if xs[i] == wanted {\n            return i;\n        }\n    }\n    return -1;\n}\n\ni32 main() {\n    i32[4] xs = {7, 3, 9, 5};\n    {\n        defer print(\"goodbye\\n\");\n        defer print(\"hello\\n\");\n    }\n    print(\"found at {}\\n\", find_first(&xs[0], 4, 9));\n    print(\"found at {}\\n\", find_first(&xs[0], 4, 8));\n    return 0;\n}\n",
+      "args": []
+    },
+    {
       "id": "ownership_error",
       "label": "Ownership error (caught at compile time)",
       "source": "// The compiler tracks ownership: this program is rejected at compile time.\n// Try deleting the print after free, then run again.\ni32 main() {\n    string s = string(\"short-lived\");\n    free(s);\n    print(\"{}\\n\", s);\n    return 0;\n}\n",
