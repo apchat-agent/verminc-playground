@@ -97,6 +97,12 @@
       "args": []
     },
     {
+      "id": "generic_context",
+      "label": "Generics and overloads by context",
+      "source": "// Context picks the type: a generic call infers from where its value goes, an overloaded function from the function type you ask for.\nstruct Box<T> {\n    T value;\n}\n\nBox<T> box<T>(T value) {\n    return Box<T>{value};\n}\n\ni32 twice(i32 x) {\n    return x * 2;\n}\n\nf64 twice(f64 x) {\n    return x * 2.0;\n}\n\ni32 apply(fn(i32): i32 callback, i32 x) {\n    return callback(x);\n}\n\ni32 main() {\n    Box<i64> big = box(1 << 40);\n    fn(f64): f64 scale = twice;\n    print(\"{} {} {}\\n\", big.value, apply(twice, 21), scale(1.25));\n    return 0;\n}\n",
+      "args": []
+    },
+    {
       "id": "generics",
       "label": "Generics with constraints",
       "source": "// Generic functions with constraints: one definition, many integer types.\nT largest<T: Integer>(T a, T b) {\n    if a > b { return a; }\n    return b;\n}\n\nT sum_to<T: Signed>(T n) {\n    if n == 0 { return 0; }\n    return n + sum_to<T>(n - 1);\n}\n\ni32 main() {\n    print(\"{} {}\\n\", largest<i32>(7, 42), largest<u8>(200, 100));\n    print(\"{} {}\\n\", sum_to<i32>(10), sum_to<i64>(100));\n    return 0;\n}\n",
