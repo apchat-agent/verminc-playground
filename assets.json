@@ -157,6 +157,12 @@
       "args": []
     },
     {
+      "id": "byte_escapes",
+      "label": "Byte and Unicode escapes",
+      "source": "// See how byte escapes and a Unicode escape become UTF-8 bytes.\ni32 main() {\n    str sample = \"\\xFF\\0\\u{E9}\";\n    print(\"{} {} {} {} {}\\n\", sample.len, sample.data[0], sample.data[1], sample.data[2], sample.data[3]);\n    return 0;\n}\n",
+      "args": []
+    },
+    {
       "id": "forward_declarations",
       "label": "Forward declarations",
       "source": "// Forward declarations: types can be used before they are defined, and constants can size arrays.\nstruct Pond;\nstruct Frog { Pond* home; i32 jumps; }\nstruct Pond { Frog[SEATS] seats; i32 count; }\nconst i32 SEATS = 3;\n\nvoid sit(Pond* pond, i32 jumps) {\n    Frog f = Frog{pond, jumps};\n    pond.seats[pond.count] = f;\n    pond.count++;\n}\n\ni32 main() {\n    Pond pond;\n    for i32 i = 0; i < SEATS; i++ {\n        sit(&pond, (i + 1) * 4);\n    }\n    i32 total = 0;\n    for i32 i = 0; i < pond.count; i++ {\n        Frog f = pond.seats[i];\n        print(\"seat {} jumps {} same pond {}\\n\", i, f.jumps, f.home == &pond);\n        total += f.jumps;\n    }\n    print(\"{} frogs, {} jumps\\n\", pond.count, total);\n    return 0;\n}\n",
