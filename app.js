@@ -79,8 +79,8 @@ document.addEventListener("keydown", (event) => {
 
 async function load() {
   const [compilerResponse, bundleResponse] = await Promise.all([
-    fetch("./compiler.wasm?v=d61ab82"),
-    fetch("./assets.json?v=d61ab82"),
+    fetch("./compiler.wasm?v=d718b13"),
+    fetch("./assets.json?v=d718b13"),
   ]);
   if (!compilerResponse.ok || !bundleResponse.ok) {
     throw new Error(
@@ -100,7 +100,7 @@ async function load() {
     $("examples").append(option);
   }
   $("examples").dispatchEvent(new Event("change"));
-  worker = new Worker("./worker.js?v=d61ab82", { type: "module" });
+  worker = new Worker("./worker.js?v=d718b13", { type: "module" });
   worker.onmessage = ({ data }) => {
     if (data.type === "ready") {
       state("ready", "Ready. Everything needed is now in this tab.");
