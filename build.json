@@ -1,7 +1,7 @@
 {
-  "compiler_sha256": "cf58e4fc3232ef9aae4a02b4b62d9e5136514ac6ea065b09528ebda2fb6fb381",
-  "compiler_bytes": 7308301,
-  "native_compiler_sha256": "92ae865b1513f2608718f9c6d570d7e7dc51c6fdb9a50659f8cb24f4748d2314",
+  "compiler_sha256": "868ab0256348d2751dd7066ad1016f4e9119ec2b561463729a11c338bde614d6",
+  "compiler_bytes": 7382806,
+  "native_compiler_sha256": "d8d0e25ef1308a2ee785ee7b79b0496bd82b839e98269a2471a13e8d854a51e3",
   "assets_sha256": "11f400895ba2fa0aa152de5a6b7c912804d9fc0ac69b53cd773a40ea032c4862",
   "library_modules": 18,
   "formatter_modules": 4,

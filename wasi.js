@@ -387,6 +387,7 @@ export async function runWasi(bytesOrModule, options = {}) {
   const host = new WasiHost(options);
   try {
     const instantiated = await WebAssembly.instantiate(bytesOrModule, {
+      ...(options.imports ?? {}),
       wasi_snapshot_preview1: host.imports,
     });
     return host.run(instantiated.instance || instantiated);
