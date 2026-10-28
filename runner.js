@@ -1,4 +1,4 @@
-import { runWasi } from "./wasi.js?v=eb357e2";
+import { runWasi } from "./wasi.js?v=8e98133";
 
 // The browser Worker and Deno acceptance tests use this exact compile/run path.
 export async function compileAndRun(
@@ -52,6 +52,31 @@ export async function compileAndRun(
     stderr: executed.stderr,
     exitCode: executed.exitCode,
   };
+}
+
+// Graphics programs need their compiled module in the page thread, where the
+// canvas and WebGL2 context live. Keep the text runner's compile/run path intact.
+export async function compileOnly(compiler, { source, files = {}, sourcePath = "/workspace/main.mc" }) {
+  const outputPath = "/workspace/program.wasm";
+  const inputs = { ...files, [sourcePath]: source };
+  delete inputs[outputPath];
+  const compiled = await runWasi(compiler, {
+    args: ["/workspace/compiler", "build", sourcePath, "--backend", "native", "--target", "wasm", "-o", outputPath],
+    files: inputs,
+  });
+  if (compiled.exitCode !== 0) return { result: { phase: "compile", stdout: compiled.stdout, stderr: compiled.stderr, exitCode: compiled.exitCode } };
+  const program = compiled.files[outputPath];
+  if (!program) return { result: { phase: "compile", stdout: compiled.stdout, stderr: compiled.stderr + "Playground: compiler produced no output module.\n", exitCode: 1 } };
+  return { result: { phase: "compile", stdout: compiled.stdout, stderr: compiled.stderr, exitCode: 0 }, program };
+}
+
+export async function compileOnlyRetrying(compiler, request, { retries = 8, delayMs = 100 } = {}) {
+  let compiled = await compileOnly(compiler, request);
+  for (let attempt = 1; attempt <= retries && isCompilerStackOverflow(compiled.result); attempt++) {
+    await pause(delayMs * attempt);
+    compiled = await compileOnly(compiler, request);
+  }
+  return compiled;
 }
 
 // Browsers first run a module in a baseline tier (Safari: an interpreter) whose stack frames are larger than

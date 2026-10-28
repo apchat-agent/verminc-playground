@@ -1,4 +1,4 @@
-import { compileAndRunRetrying, formatSource } from "./runner.js?v=eb357e2";
+import { compileAndRunRetrying, compileOnlyRetrying, formatSource } from "./runner.js?v=8e98133";
 
 let compiler;
 let files;
@@ -11,6 +11,19 @@ self.onmessage = async ({ data }) => {
       if (formatted.exitCode !== 0) throw new Error(formatted.stderr);
       self.postMessage({ type: "ready" });
     } else if (data.type === "run") {
+      if (data.graphics) {
+        const compiled = await compileOnlyRetrying(compiler, { source: data.source, files });
+        if (compiled.result.exitCode !== 0) {
+          self.postMessage({ type: "graphics", result: compiled.result });
+        } else {
+          const wasm = compiled.program.buffer.slice(
+            compiled.program.byteOffset,
+            compiled.program.byteOffset + compiled.program.byteLength,
+          );
+          self.postMessage({ type: "graphics", result: compiled.result, wasm }, [wasm]);
+        }
+        return;
+      }
       const result = await compileAndRunRetrying(compiler, {
         source: data.source,
         args: data.args,

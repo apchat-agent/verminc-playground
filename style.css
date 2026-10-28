@@ -63,6 +63,20 @@ h1 span {
   min-width: 0;
   padding: 22px;
 }
+#graphics-canvas {
+  display: block;
+  width: min(100%, 512px);
+  aspect-ratio: 1;
+  height: auto;
+  margin: 12px auto 20px;
+  background: #000;
+  border: 1px solid #34444e;
+  border-radius: 5px;
+  touch-action: none;
+}
+#graphics-canvas[hidden] {
+  display: none;
+}
 .output-panel {
   background: #121c23;
   border-left: 1px solid #34444e;

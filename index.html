@@ -7,8 +7,8 @@
       content="default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; style-src 'self'; connect-src 'self'; img-src data:; base-uri 'none'; form-action 'none'">
     <title>verminc playground</title>
     <link rel="icon" href="data:,">
-    <link rel="stylesheet" href="style.css?v=eb357e2">
-    <script type="module" src="app.js?v=eb357e2"></script>
+    <link rel="stylesheet" href="style.css?v=8e98133">
+    <script type="module" src="app.js?v=8e98133"></script>
   </head>
   <body data-state="loading">
     <main>
@@ -36,6 +36,7 @@
           <div
             class="panel-head"><h2>Output</h2><span class="exit">Exit <output id="exit-code">—</output></span></div>
           <p id="status" role="status" aria-live="polite">Loading compiler…</p>
+          <canvas id="graphics-canvas" width="256" height="256" hidden aria-label="Graphics example output"></canvas>
           <h3>stdout</h3>
           <pre id="stdout" tabindex="0" aria-label="Standard output"></pre>
           <h3>stderr</h3>

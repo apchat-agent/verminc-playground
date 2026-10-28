@@ -1,27 +1,36 @@
+import { createGraphicsHost } from "./gfx/host.js";
+
 const $ = (id) => document.getElementById(id);
 let worker;
 let timer;
 let examples = [];
 let started;
+let graphicsHost;
 
 function state(name, message) {
   document.body.dataset.state = name;
   $("status").textContent = message;
-  $("run").disabled = !["ready", "done"].includes(name);
+  $("run").disabled = !["ready", "done", "graphics"].includes(name);
   $("format").disabled = !["ready", "done"].includes(name);
   $("source").readOnly = name === "running";
   $("formatter-source").readOnly = name === "running";
-  $("stop").disabled = name !== "running";
+  $("stop").disabled = !["running", "graphics"].includes(name);
   $("examples").disabled = ["loading", "running"].includes(name);
 }
 function stop(message = "Stopped. Reload the page to start a new session.") {
   clearTimeout(timer);
+  graphicsHost?.dispose();
+  graphicsHost = undefined;
   worker?.terminate();
   state("stopped", message);
   $("exit-code").textContent = "—";
 }
 function run() {
   if ($("run").disabled) return;
+  graphicsHost?.dispose();
+  graphicsHost = undefined;
+  const selected = examples.find((item) => item.id === $("examples").value);
+  const graphics = selected?.graphics === true;
   let args;
   try {
     args = JSON.parse($("arguments").value || "[]");
@@ -49,7 +58,7 @@ function run() {
       stop("Stopped after 30 seconds. Reload the page to start a new session."),
     30000,
   );
-  worker.postMessage({ type: "run", source: $("source").value, args });
+  worker.postMessage({ type: "run", source: $("source").value, args, graphics });
 }
 $("run").addEventListener("click", run);
 $("format").addEventListener("click", () => {
@@ -69,6 +78,7 @@ $("examples").addEventListener("change", () => {
     $("source").value = example.source;
     $("arguments").value = JSON.stringify(example.args);
   }
+  $("graphics-canvas").hidden = example?.graphics !== true;
 });
 document.addEventListener("keydown", (event) => {
   if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
@@ -79,8 +89,8 @@ document.addEventListener("keydown", (event) => {
 
 async function load() {
   const [compilerResponse, bundleResponse] = await Promise.all([
-    fetch("./compiler.wasm?v=eb357e2"),
-    fetch("./assets.json?v=eb357e2"),
+    fetch("./compiler.wasm?v=8e98133"),
+    fetch("./assets.json?v=8e98133"),
   ]);
   if (!compilerResponse.ok || !bundleResponse.ok) {
     throw new Error(
@@ -91,7 +101,7 @@ async function load() {
     compilerResponse.arrayBuffer(),
     bundleResponse.json(),
   ]);
-  examples = bundle.examples;
+  examples = [...bundle.examples, ...(bundle.graphics_examples ?? [])];
   $("formatter-source").value = bundle.formatter;
   for (const example of examples) {
     const option = document.createElement("option");
@@ -100,8 +110,8 @@ async function load() {
     $("examples").append(option);
   }
   $("examples").dispatchEvent(new Event("change"));
-  worker = new Worker("./worker.js?v=eb357e2", { type: "module" });
-  worker.onmessage = ({ data }) => {
+  worker = new Worker("./worker.js?v=8e98133", { type: "module" });
+  worker.onmessage = async ({ data }) => {
     if (data.type === "ready") {
       state("ready", "Ready. Everything needed is now in this tab.");
     } else if (data.type === "result") {
@@ -121,6 +131,28 @@ async function load() {
           ? "Compilation failed."
           : `Finished in ${elapsed}s.`,
       );
+    } else if (data.type === "graphics") {
+      clearTimeout(timer);
+      $("stdout").textContent = data.result.stdout;
+      $("stderr").textContent = data.result.stderr;
+      $("exit-code").textContent = String(data.result.exitCode);
+      if (data.result.exitCode !== 0) {
+        const elapsed = ((performance.now() - started) / 1000).toFixed(2);
+        state("done", `Graphics compilation failed after ${elapsed}s.`);
+        return;
+      }
+      try {
+        graphicsHost = createGraphicsHost($("graphics-canvas"));
+        await graphicsHost.run(data.wasm);
+        state("graphics", "Graphics program running. Use the canvas for pointer and keyboard input.");
+        $("exit-code").textContent = "running";
+      } catch (error) {
+        graphicsHost?.dispose();
+        graphicsHost = undefined;
+        $("stderr").textContent += `${error.message}\n`;
+        $("exit-code").textContent = "1";
+        state("done", "Graphics host failed.");
+      }
     } else if (data.type === "error") {
       $("stderr").textContent = data.message;
       stop("The playground host stopped. Reload to restart.");
