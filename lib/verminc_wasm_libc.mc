@@ -21,6 +21,7 @@ void assert(i64 condition) {
     if condition == 0 { __sokol_abort(); }
 }
 
+when !defined(VERMINC_IMGUI_EXT_LIBC) {
 f64 round(f64 value) {
     if value < 0.0 { return ceil(value - 0.5); }
     return floor(value + 0.5);
@@ -44,7 +45,23 @@ u8* strncpy(u8* destination, u8* source, u64 count) {
     }
     return destination;
 }
+}
 
+when !defined(VERMINC_IMGUI_EXT_LIBC) {
+void* memmove(void* dst, void* src, u64 count) {
+    u8* destination = cast(u8*, dst);
+    u8* source = cast(u8*, src);
+    if cast(u64, dst) < cast(u64, src) {
+        for u64 i = 0; i < count; i++ { destination[i] = source[i]; }
+    } else if cast(u64, dst) > cast(u64, src) {
+        for u64 i = count; i > 0; i-- { destination[i - 1] = source[i - 1]; }
+    }
+    return dst;
+}
+}
+
+
+when !defined(VERMINC_IMGUI_EXT_LIBC) {
 u8* strstr(u8* text, u8* needle) {
     if needle[0] == 0 { return text; }
     for u64 start = 0; text[start] != 0; start++ {
@@ -56,5 +73,8 @@ u8* strstr(u8* text, u8* needle) {
     }
     return null;
 }
+}
 
 const f32 FLT_MAX = 3.4028234e+38f;
+const f32 FLT_MIN = 1.17549435e-38f;
+const f64 DBL_MAX = 1.7976931348623157e+308;

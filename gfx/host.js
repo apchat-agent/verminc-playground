@@ -1,7 +1,7 @@
 // A small WebGL2 host for the Wasm seam in playground/lib/sokol_all.mc.
 // The module's import signatures are recorded in tmp/GFX-IMPORTS.md.  Any
 // measured call that this triangle host does not implement fails by name.
-import { WasiHost } from "../wasi.js?v=b9a4129b";
+import { WasiHost } from "../wasi.js?v=ebab282";
 
 const asNumber = (value) => typeof value === "bigint" ? Number(value) : value;
 const asUnsigned = (value) => Number(BigInt.asUintN(32, BigInt(value)));
@@ -117,6 +117,7 @@ export function createGraphicsHost(canvas) {
     glBindBufferBase: (target, index, id) => gl.bindBufferBase(number(target), number(index), lookup("buffer", id)),
     glBindBufferRange: (target, index, id, offset, size) => gl.bindBufferRange(number(target), number(index), lookup("buffer", id), number(offset), number(size)),
     glBindFramebuffer: (target, id) => gl.bindFramebuffer(number(target), lookup("framebuffer", id)),
+    glBindRenderbuffer: (target, id) => gl.bindRenderbuffer(number(target), lookup("renderbuffer", id)),
     glBindSampler: (unit, id) => gl.bindSampler(number(unit), lookup("sampler", id)),
     glBindTexture: (target, id) => gl.bindTexture(number(target), lookup("texture", id)),
     glBindVertexArray: (id) => gl.bindVertexArray(lookup("vertexArray", id)),
@@ -134,6 +135,10 @@ export function createGraphicsHost(canvas) {
     glClearBufferfv: (buffer, drawbuffer, pointer) => gl.clearBufferfv(number(buffer), number(drawbuffer), readF32s(pointer, number(buffer) === gl.COLOR ? 4 : 1)),
     glClearBufferiv: (buffer, drawbuffer, pointer) => gl.clearBufferiv(number(buffer), number(drawbuffer), readI32s(pointer, number(buffer) === gl.COLOR ? 4 : 1)),
     glColorMask: (r, g, b, a) => gl.colorMask(!!number(r), !!number(g), !!number(b), !!number(a)),
+    glCompressedTexSubImage2D: (target, level, x, y, width, height, format, imageSize, pointer) =>
+      gl.compressedTexSubImage2D(number(target), number(level), number(x), number(y), number(width), number(height), number(format), readBytes(pointer, number(imageSize))),
+    glCompressedTexSubImage3D: (target, level, x, y, z, width, height, depth, format, imageSize, pointer) =>
+      gl.compressedTexSubImage3D(number(target), number(level), number(x), number(y), number(z), number(width), number(height), number(depth), number(format), readBytes(pointer, number(imageSize))),
     glCompileShader: (id) => gl.compileShader(lookup("shader", id)),
     glCreateProgram: () => BigInt(remember("program", gl.createProgram())),
     glCreateShader: (type) => BigInt(remember("shader", gl.createShader(number(type)))),
@@ -223,6 +228,8 @@ export function createGraphicsHost(canvas) {
     glPixelStorei: (pname, param) => gl.pixelStorei(number(pname), number(param)),
     glPolygonOffset: (factor, units) => gl.polygonOffset(factor, units),
     glReadBuffer: (a) => gl.readBuffer(number(a)),
+    glRenderbufferStorageMultisample: (target, samples, format, width, height) =>
+      gl.renderbufferStorageMultisample(number(target), number(samples), number(format), number(width), number(height)),
     glSamplerParameterf: (id, pname, param) => gl.samplerParameterf(lookup("sampler", id), number(pname), param),
     glSamplerParameteri: (id, pname, param) => gl.samplerParameteri(lookup("sampler", id), number(pname), number(param)),
     glScissor: (...args) => gl.scissor(...args.map(number)),
@@ -242,8 +249,20 @@ export function createGraphicsHost(canvas) {
     glStencilOpSeparate: (...args) => gl.stencilOpSeparate(...args.map(number)),
     glTexStorage2D: (...args) => gl.texStorage2D(...args.map(number)),
     glTexStorage3D: (...args) => gl.texStorage3D(...args.map(number)),
-    glTexSubImage2D: (target, level, x, y, width, height, format, type, pointer) => gl.texSubImage2D(number(target), number(level), number(x), number(y), number(width), number(height), number(format), number(type), readBytes(pointer, Math.max(0, number(width) * number(height) * 4))),
-    glTexSubImage3D: (target, level, x, y, z, width, height, depth, format, type, pointer) => gl.texSubImage3D(number(target), number(level), number(x), number(y), number(z), number(width), number(height), number(depth), number(format), number(type), readBytes(pointer, Math.max(0, number(width) * number(height) * number(depth) * 4))),
+    glTexSubImage2D: (target, level, x, y, width, height, format, type, pointer) => {
+      const unpackBuffer = gl.getParameter(gl.PIXEL_UNPACK_BUFFER_BINDING);
+      const data = unpackBuffer
+        ? Number(pointer)
+        : readBytes(pointer, Math.max(0, number(width) * number(height) * 4));
+      gl.texSubImage2D(number(target), number(level), number(x), number(y), number(width), number(height), number(format), number(type), data);
+    },
+    glTexSubImage3D: (target, level, x, y, z, width, height, depth, format, type, pointer) => {
+      const unpackBuffer = gl.getParameter(gl.PIXEL_UNPACK_BUFFER_BINDING);
+      const data = unpackBuffer
+        ? Number(pointer)
+        : readBytes(pointer, Math.max(0, number(width) * number(height) * number(depth) * 4));
+      gl.texSubImage3D(number(target), number(level), number(x), number(y), number(z), number(width), number(height), number(depth), number(format), number(type), data);
+    },
     glUseProgram: (id) => gl.useProgram(lookup("program", id)),
     glUniform1i: (location, value) => gl.uniform1i(lookup("uniform", location), number(value)),
     glUniform1fv: (location, count, p) => gl.uniform1fv(lookup("uniform", location), readF32s(p, number(count))),
@@ -271,8 +290,8 @@ export function createGraphicsHost(canvas) {
   const dpi = () => Math.max(1, window.devicePixelRatio || 1);
   const resize = () => {
     const ratio = dpi();
-    const width = Math.max(1, Math.round(256 * ratio));
-    const height = Math.max(1, Math.round(256 * ratio));
+    const width = Math.max(1, Math.round((canvas.clientWidth || canvas.width || 256) * ratio));
+    const height = Math.max(1, Math.round((canvas.clientHeight || canvas.height || 256) * ratio));
     if (canvas.width !== width || canvas.height !== height) {
       canvas.width = width;
       canvas.height = height;
@@ -309,40 +328,89 @@ export function createGraphicsHost(canvas) {
     },
   };
 
+  const modifiers = (event) => {
+    let bits = (event.shiftKey ? 1 : 0) | (event.ctrlKey ? 2 : 0)
+      | (event.altKey ? 4 : 0) | (event.metaKey ? 8 : 0);
+    if (event.buttons & 1) bits |= 256;
+    if (event.buttons & 2) bits |= 512;
+    if (event.buttons & 4) bits |= 1024;
+    return BigInt(bits);
+  };
   function sendMouseMove(event) {
     if (!instance) return;
     const rect = canvas.getBoundingClientRect();
     const x = (event.clientX - rect.left) * canvas.width / rect.width;
     const y = (event.clientY - rect.top) * canvas.height / rect.height;
     const args = instance.exports._sapp_wasm_event_mouse_move;
-    args?.(floatBits(x, 32), floatBits(y, 32), floatBits(event.movementX || x - lastPointer.x, 32), floatBits(event.movementY || y - lastPointer.y, 32), BigInt(event.shiftKey ? 1 : 0));
+    args?.(floatBits(x, 32), floatBits(y, 32), floatBits(event.movementX || x - lastPointer.x, 32), floatBits(event.movementY || y - lastPointer.y, 32), modifiers(event));
     lastPointer = { x, y };
   }
   const onMove = (event) => sendMouseMove(event);
+  const mouseButton = (button) => button === 2 ? 1 : button === 1 ? 2 : button === 0 ? 0 : 256;
   const onDown = (event) => {
     canvas.focus();
     sendMouseMove(event);
-    instance?.exports._sapp_wasm_event_mouse_button?.(1n, BigInt(event.button), floatBits(lastPointer.x, 32), floatBits(lastPointer.y, 32), 0n);
+    instance?.exports._sapp_wasm_event_mouse_button?.(1n, BigInt(mouseButton(event.button)), floatBits(lastPointer.x, 32), floatBits(lastPointer.y, 32), modifiers(event));
   };
-  const onUp = (event) => instance?.exports._sapp_wasm_event_mouse_button?.(0n, BigInt(event.button), floatBits(lastPointer.x, 32), floatBits(lastPointer.y, 32), 0n);
-  const onWheel = (event) => instance?.exports._sapp_wasm_event_mouse_scroll?.(floatBits(event.deltaX, 32), floatBits(event.deltaY, 32), 0n);
-  const onEnter = () => instance?.exports._sapp_wasm_event_mouse_enter_leave?.(1n, 0n);
-  const onLeave = () => instance?.exports._sapp_wasm_event_mouse_enter_leave?.(0n, 0n);
-  const keyCode = (event) => event.key.length === 1 ? event.key.toUpperCase().charCodeAt(0) : event.keyCode;
-  const onKeyDown = (event) => instance?.exports._sapp_wasm_event_key?.(1n, BigInt(keyCode(event)), 0n, BigInt(Number(event.repeat)));
-  const onKeyUp = (event) => instance?.exports._sapp_wasm_event_key?.(0n, BigInt(keyCode(event)), 0n, BigInt(Number(event.repeat)));
-  const onChar = (event) => {
-    if (event.key.length === 1) instance?.exports._sapp_wasm_event_char?.(BigInt(event.key.codePointAt(0)), 0n, BigInt(Number(event.repeat)));
+  const onUp = (event) => instance?.exports._sapp_wasm_event_mouse_button?.(0n, BigInt(mouseButton(event.button)), floatBits(lastPointer.x, 32), floatBits(lastPointer.y, 32), modifiers(event));
+  const onWheel = (event) => {
+    event.preventDefault();
+    const scale = event.deltaMode === WheelEvent.DOM_DELTA_LINE ? 1 / 40
+      : event.deltaMode === WheelEvent.DOM_DELTA_PAGE ? 1 : 1 / 100;
+    instance?.exports._sapp_wasm_event_mouse_scroll?.(floatBits(event.deltaX * scale, 32), floatBits(event.deltaY * scale, 32), modifiers(event));
+  };
+  const onEnter = (event) => instance?.exports._sapp_wasm_event_mouse_enter_leave?.(1n, modifiers(event));
+  const onLeave = (event) => instance?.exports._sapp_wasm_event_mouse_enter_leave?.(0n, modifiers(event));
+  const keyCodeByCode = {
+    Space: 32, Quote: 39, Comma: 44, Minus: 45, Period: 46, Slash: 47,
+    Semicolon: 59, Equal: 61, BracketLeft: 91, Backslash: 92,
+    BracketRight: 93, Backquote: 96, IntlBackslash: 161, IntlRo: 162,
+    Escape: 256, Enter: 257, Tab: 258, Backspace: 259, Insert: 260,
+    Delete: 261, ArrowRight: 262, ArrowLeft: 263, ArrowDown: 264,
+    ArrowUp: 265, PageUp: 266, PageDown: 267, Home: 268, End: 269,
+    CapsLock: 280, ScrollLock: 281, NumLock: 282, PrintScreen: 283, Pause: 284,
+    NumpadDecimal: 330, NumpadDivide: 331, NumpadMultiply: 332,
+    NumpadSubtract: 333, NumpadAdd: 334, NumpadEnter: 335, NumpadEqual: 336,
+    ShiftLeft: 340, ControlLeft: 341, AltLeft: 342, MetaLeft: 343,
+    ShiftRight: 344, ControlRight: 345, AltRight: 346, MetaRight: 347,
+    ContextMenu: 348,
+    ...Object.fromEntries(Array.from({length: 10}, (_, i) => [`Digit${i}`, 48 + i])),
+    ...Object.fromEntries(Array.from({length: 26}, (_, i) => [`Key${String.fromCharCode(65 + i)}`, 65 + i])),
+    ...Object.fromEntries(Array.from({length: 25}, (_, i) => [`F${i + 1}`, 290 + i])),
+    ...Object.fromEntries(Array.from({length: 10}, (_, i) => [`Numpad${i}`, 320 + i])),
+  };
+  const keyCodeByKey = {
+    Escape: 256, Enter: 257, Tab: 258, Backspace: 259, Insert: 260,
+    Delete: 261, ArrowRight: 262, ArrowLeft: 263, ArrowDown: 264,
+    ArrowUp: 265, PageUp: 266, PageDown: 267, Home: 268, End: 269,
+    CapsLock: 280, ScrollLock: 281, NumLock: 282, PrintScreen: 283, Pause: 284,
+    Shift: 340, Control: 341, Alt: 342, Meta: 343, ContextMenu: 348,
+    " ": 32, "'": 39, ",": 44, "-": 45, ".": 46, "/": 47,
+    ";": 59, "=": 61, "[": 91, "\\": 92, "]": 93, "`": 96,
+  };
+  const keyCode = (event) => keyCodeByCode[event.code] ?? keyCodeByKey[event.key]
+    ?? (Array.from(event.key).length === 1 && event.key.codePointAt(0) <= 0x7f
+      ? event.key.toUpperCase().charCodeAt(0) : 0);
+  const onKeyDown = (event) => {
+    event.preventDefault();
+    instance?.exports._sapp_wasm_event_key?.(1n, BigInt(keyCode(event)), modifiers(event), BigInt(Number(event.repeat)));
+    const altGraph = event.getModifierState?.("AltGraph") === true;
+    if (Array.from(event.key).length === 1 && !event.ctrlKey && !event.metaKey && (!event.altKey || altGraph)) {
+      instance?.exports._sapp_wasm_event_char?.(BigInt(event.key.codePointAt(0)), modifiers(event), BigInt(Number(event.repeat)));
+    }
+  };
+  const onKeyUp = (event) => {
+    event.preventDefault();
+    instance?.exports._sapp_wasm_event_key?.(0n, BigInt(keyCode(event)), modifiers(event), BigInt(Number(event.repeat)));
   };
   canvas.addEventListener("mousemove", onMove);
   canvas.addEventListener("mousedown", onDown);
   canvas.addEventListener("mouseup", onUp);
-  canvas.addEventListener("wheel", onWheel, { passive: true });
+  canvas.addEventListener("wheel", onWheel, { passive: false });
   canvas.addEventListener("mouseenter", onEnter);
   canvas.addEventListener("mouseleave", onLeave);
   canvas.addEventListener("keydown", onKeyDown);
   canvas.addEventListener("keyup", onKeyUp);
-  canvas.addEventListener("keypress", onChar);
   window.addEventListener("resize", resize);
 
   return {
@@ -390,7 +458,6 @@ export function createGraphicsHost(canvas) {
       canvas.removeEventListener("mouseleave", onLeave);
       canvas.removeEventListener("keydown", onKeyDown);
       canvas.removeEventListener("keyup", onKeyUp);
-      canvas.removeEventListener("keypress", onChar);
       window.removeEventListener("resize", resize);
     },
   };
