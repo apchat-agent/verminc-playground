@@ -1,10 +1,10 @@
 {
   "compiler_sha256": "bf5058b6624a8216ece4b4f673fed4aaf0ed38a1b391019667e7de12d78b3cc6",
   "compiler_bytes": 7921181,
-  "box3d_sha256": "c498b13be432e86f22b630fb3bae58b2b48f6431430342be23eb61360b121627",
-  "box3d_bytes": 47314951,
+  "box3d_sha256": "74802141e72848c55783c2b94134e20db758182eae1f36abaf351ca268692488",
+  "box3d_bytes": 47317979,
   "native_compiler_sha256": "1b47cdf283a391efa4589a58926d1bcd5dc3cb785eb72d1caf48b545fb0bc433",
-  "assets_sha256": "bf4143b3f052cddcf6327f096c313ec5af2fa8dbbc520f1b74c8294549394a43",
+  "assets_sha256": "b41ae7d74515476257c0ca20cbc9f68091a115db970006796f81b66c35639865",
   "library_modules": 19,
   "formatter_modules": 4,
   "formatter_bytes": 23425,

@@ -1,4 +1,4 @@
-import { compileAndRunRetrying, compileOnlyRetrying, formatSource } from "./runner.js?v=6b4c319";
+import { compileAndRunRetrying, compileOnlyRetrying, formatSource } from "./runner.js?v=80f3a88";
 
 let compiler;
 let files;

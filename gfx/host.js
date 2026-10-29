@@ -1,7 +1,7 @@
 // A small WebGL2 host for the Wasm seam in playground/lib/sokol_all.mc.
 // The module's import signatures are recorded in tmp/GFX-IMPORTS.md.  Any
 // measured call that this triangle host does not implement fails by name.
-import { WasiHost } from "../wasi.js?v=6b4c319";
+import { WasiHost } from "../wasi.js?v=80f3a88";
 
 const asNumber = (value) => typeof value === "bigint" ? Number(value) : value;
 const asUnsigned = (value) => Number(BigInt.asUintN(32, BigInt(value)));
@@ -346,14 +346,53 @@ export function createGraphicsHost(canvas) {
     args?.(floatBits(x, 32), floatBits(y, 32), floatBits(event.movementX || x - lastPointer.x, 32), floatBits(event.movementY || y - lastPointer.y, 32), modifiers(event));
     lastPointer = { x, y };
   }
-  const onMove = (event) => sendMouseMove(event);
+  const preventTouchDefault = (event) => {
+    if (event.pointerType === "touch" && event.cancelable) event.preventDefault();
+  };
   const mouseButton = (button) => button === 2 ? 1 : button === 1 ? 2 : button === 0 ? 0 : 256;
-  const onDown = (event) => {
+  const activePointerButtons = new Map();
+  const setPointerCapture = (event) => {
+    try { canvas.setPointerCapture(event.pointerId); } catch { /* synthetic or already-cancelled pointer */ }
+  };
+  const releasePointerCapture = (event) => {
+    try {
+      if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+    } catch { /* synthetic or already-cancelled pointer */ }
+  };
+  const onPointerMove = (event) => {
+    preventTouchDefault(event);
+    sendMouseMove(event);
+  };
+  const onPointerDown = (event) => {
+    preventTouchDefault(event);
     canvas.focus();
     sendMouseMove(event);
+    setPointerCapture(event);
+    const button = mouseButton(event.button);
+    let buttons = activePointerButtons.get(event.pointerId);
+    if (!buttons) activePointerButtons.set(event.pointerId, buttons = new Set());
+    buttons.add(button);
     instance?.exports._sapp_wasm_event_mouse_button?.(1n, BigInt(mouseButton(event.button)), floatBits(lastPointer.x, 32), floatBits(lastPointer.y, 32), modifiers(event));
   };
-  const onUp = (event) => instance?.exports._sapp_wasm_event_mouse_button?.(0n, BigInt(mouseButton(event.button)), floatBits(lastPointer.x, 32), floatBits(lastPointer.y, 32), modifiers(event));
+  const onPointerUp = (event) => {
+    preventTouchDefault(event);
+    const button = mouseButton(event.button);
+    instance?.exports._sapp_wasm_event_mouse_button?.(0n, BigInt(button), floatBits(lastPointer.x, 32), floatBits(lastPointer.y, 32), modifiers(event));
+    const buttons = activePointerButtons.get(event.pointerId);
+    buttons?.delete(button);
+    if (buttons?.size === 0) activePointerButtons.delete(event.pointerId);
+    releasePointerCapture(event);
+  };
+  const onPointerCancel = (event) => {
+    preventTouchDefault(event);
+    sendMouseMove(event);
+    const buttons = activePointerButtons.get(event.pointerId);
+    for (const button of buttons ?? []) {
+      instance?.exports._sapp_wasm_event_mouse_button?.(0n, BigInt(button), floatBits(lastPointer.x, 32), floatBits(lastPointer.y, 32), modifiers(event));
+    }
+    activePointerButtons.delete(event.pointerId);
+    releasePointerCapture(event);
+  };
   const onWheel = (event) => {
     event.preventDefault();
     const scale = event.deltaMode === WheelEvent.DOM_DELTA_LINE ? 1 / 40
@@ -404,12 +443,13 @@ export function createGraphicsHost(canvas) {
     event.preventDefault();
     instance?.exports._sapp_wasm_event_key?.(0n, BigInt(keyCode(event)), modifiers(event), BigInt(Number(event.repeat)));
   };
-  canvas.addEventListener("mousemove", onMove);
-  canvas.addEventListener("mousedown", onDown);
-  canvas.addEventListener("mouseup", onUp);
+  canvas.addEventListener("pointermove", onPointerMove);
+  canvas.addEventListener("pointerdown", onPointerDown);
+  canvas.addEventListener("pointerup", onPointerUp);
+  canvas.addEventListener("pointercancel", onPointerCancel);
   canvas.addEventListener("wheel", onWheel, { passive: false });
-  canvas.addEventListener("mouseenter", onEnter);
-  canvas.addEventListener("mouseleave", onLeave);
+  canvas.addEventListener("pointerenter", onEnter);
+  canvas.addEventListener("pointerleave", onLeave);
   canvas.addEventListener("keydown", onKeyDown);
   canvas.addEventListener("keyup", onKeyUp);
   window.addEventListener("resize", resize);
@@ -453,12 +493,13 @@ export function createGraphicsHost(canvas) {
     dispose() {
       quit = true;
       if (raf) cancelAnimationFrame(raf);
-      canvas.removeEventListener("mousemove", onMove);
-      canvas.removeEventListener("mousedown", onDown);
-      canvas.removeEventListener("mouseup", onUp);
+      canvas.removeEventListener("pointermove", onPointerMove);
+      canvas.removeEventListener("pointerdown", onPointerDown);
+      canvas.removeEventListener("pointerup", onPointerUp);
+      canvas.removeEventListener("pointercancel", onPointerCancel);
       canvas.removeEventListener("wheel", onWheel);
-      canvas.removeEventListener("mouseenter", onEnter);
-      canvas.removeEventListener("mouseleave", onLeave);
+      canvas.removeEventListener("pointerenter", onEnter);
+      canvas.removeEventListener("pointerleave", onLeave);
       canvas.removeEventListener("keydown", onKeyDown);
       canvas.removeEventListener("keyup", onKeyUp);
       window.removeEventListener("resize", resize);
