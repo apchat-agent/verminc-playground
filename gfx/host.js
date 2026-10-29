@@ -1,7 +1,7 @@
 // A small WebGL2 host for the Wasm seam in playground/lib/sokol_all.mc.
 // The module's import signatures are recorded in tmp/GFX-IMPORTS.md.  Any
 // measured call that this triangle host does not implement fails by name.
-import { WasiHost } from "../wasi.js?v=80f3a88";
+import { WasiHost } from "../wasi.js?v=4218d18";
 
 const asNumber = (value) => typeof value === "bigint" ? Number(value) : value;
 const asUnsigned = (value) => Number(BigInt.asUintN(32, BigInt(value)));
@@ -25,6 +25,11 @@ export function createGraphicsHost(canvas) {
 
   const objects = new Map();
   const nextObject = new Map();
+  // Keep CPU copies of small streaming buffers. Sokol uses these as temporary
+  // pixel-unpack buffers for texture updates; WebGL's PBO upload path can lag
+  // a just-written buffer on some drivers, so the host can submit the same
+  // bytes through the client-memory overload instead.
+  const bufferShadow = new WeakMap();
   let memory;
   let instance;
   let heap = 32 * 1024 * 1024;
@@ -99,6 +104,17 @@ export function createGraphicsHost(canvas) {
       forget(kind, id);
     }
   };
+  const bufferBindingQuery = new Map([
+    [gl.ARRAY_BUFFER, gl.ARRAY_BUFFER_BINDING],
+    [gl.ELEMENT_ARRAY_BUFFER, gl.ELEMENT_ARRAY_BUFFER_BINDING],
+    [gl.COPY_READ_BUFFER, gl.COPY_READ_BUFFER_BINDING],
+    [gl.COPY_WRITE_BUFFER, gl.COPY_WRITE_BUFFER_BINDING],
+    [gl.PIXEL_PACK_BUFFER, gl.PIXEL_PACK_BUFFER_BINDING],
+    [gl.PIXEL_UNPACK_BUFFER, gl.PIXEL_UNPACK_BUFFER_BINDING],
+    [gl.UNIFORM_BUFFER, gl.UNIFORM_BUFFER_BINDING],
+    [gl.TRANSFORM_FEEDBACK_BUFFER, gl.TRANSFORM_FEEDBACK_BUFFER_BINDING],
+  ]);
+  const boundBuffer = (target) => gl.getParameter(bufferBindingQuery.get(number(target)) ?? gl.ARRAY_BUFFER_BINDING);
   const ensureMemory = (end) => {
     if (end <= memory.buffer.byteLength) return;
     memory.grow(Math.ceil((end - memory.buffer.byteLength) / 65536));
@@ -128,9 +144,23 @@ export function createGraphicsHost(canvas) {
     glBlitFramebuffer: (...args) => gl.blitFramebuffer(...args.map(number)),
     glBufferData: (target, size, pointer, usage) => {
       const length = Number(size);
-      gl.bufferData(number(target), Number(pointer) === 0 ? length : readBytes(pointer, length), number(usage));
+      const data = Number(pointer) === 0 ? null : readBytes(pointer, length);
+      const buffer = boundBuffer(target);
+      if (buffer && number(usage) === gl.STREAM_DRAW && length <= 1024 * 1024) {
+        bufferShadow.set(buffer, data ? data.slice() : new Uint8Array(length));
+      } else if (buffer) {
+        bufferShadow.delete(buffer);
+      }
+      gl.bufferData(number(target), data ?? length, number(usage));
     },
-    glBufferSubData: (target, offset, size, pointer) => gl.bufferSubData(number(target), Number(offset), readBytes(pointer, size)),
+    glBufferSubData: (target, offset, size, pointer) => {
+      const bytes = readBytes(pointer, size);
+      const shadow = bufferShadow.get(boundBuffer(target));
+      if (shadow && Number(offset) >= 0 && Number(offset) + Number(size) <= shadow.byteLength) {
+        shadow.set(bytes, Number(offset));
+      }
+      gl.bufferSubData(number(target), Number(offset), bytes);
+    },
     glCheckFramebufferStatus: (target) => BigInt(gl.checkFramebufferStatus(number(target))),
     glClearBufferfi: (buffer, drawbuffer, depth, stencil) => gl.clearBufferfi(number(buffer), number(drawbuffer), depth, number(stencil)),
     glClearBufferfv: (buffer, drawbuffer, pointer) => gl.clearBufferfv(number(buffer), number(drawbuffer), readF32s(pointer, number(buffer) === gl.COLOR ? 4 : 1)),
@@ -252,9 +282,52 @@ export function createGraphicsHost(canvas) {
     glTexStorage3D: (...args) => gl.texStorage3D(...args.map(number)),
     glTexSubImage2D: (target, level, x, y, width, height, format, type, pointer) => {
       const unpackBuffer = gl.getParameter(gl.PIXEL_UNPACK_BUFFER_BINDING);
-      const data = unpackBuffer
-        ? Number(pointer)
-        : readBytes(pointer, Math.max(0, number(width) * number(height) * 4));
+      let data;
+      if (unpackBuffer && number(format) === gl.RGBA && number(type) === gl.UNSIGNED_BYTE) {
+        const shadow = bufferShadow.get(unpackBuffer);
+        if (shadow) {
+          const w = number(width), h = number(height);
+          const rowLength = gl.getParameter(gl.UNPACK_ROW_LENGTH) || w;
+          const alignment = gl.getParameter(gl.UNPACK_ALIGNMENT);
+          const rowStride = Math.ceil(rowLength * 4 / alignment) * alignment;
+          const skipPixels = gl.getParameter(gl.UNPACK_SKIP_PIXELS);
+          const skipRows = gl.getParameter(gl.UNPACK_SKIP_ROWS);
+          const packed = new Uint8Array(w * h * 4);
+          let inBounds = true;
+          for (let row = 0; row < h; row++) {
+            const source = Number(pointer) + (row + skipRows) * rowStride + skipPixels * 4;
+            const end = source + w * 4;
+            if (source < 0 || end > shadow.byteLength) { inBounds = false; break; }
+            packed.set(shadow.subarray(source, end), row * w * 4);
+          }
+          if (inBounds) {
+            const previousRowLength = gl.getParameter(gl.UNPACK_ROW_LENGTH);
+            const previousImageHeight = gl.getParameter(gl.UNPACK_IMAGE_HEIGHT);
+            const previousSkipPixels = gl.getParameter(gl.UNPACK_SKIP_PIXELS);
+            const previousSkipRows = gl.getParameter(gl.UNPACK_SKIP_ROWS);
+            try {
+              gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, null);
+              gl.pixelStorei(gl.UNPACK_ROW_LENGTH, 0);
+              gl.pixelStorei(gl.UNPACK_IMAGE_HEIGHT, 0);
+              gl.pixelStorei(gl.UNPACK_SKIP_PIXELS, 0);
+              gl.pixelStorei(gl.UNPACK_SKIP_ROWS, 0);
+              gl.texSubImage2D(number(target), number(level), number(x), number(y), w, h, number(format), number(type), packed);
+            } finally {
+              gl.pixelStorei(gl.UNPACK_ROW_LENGTH, previousRowLength);
+              gl.pixelStorei(gl.UNPACK_IMAGE_HEIGHT, previousImageHeight);
+              gl.pixelStorei(gl.UNPACK_SKIP_PIXELS, previousSkipPixels);
+              gl.pixelStorei(gl.UNPACK_SKIP_ROWS, previousSkipRows);
+              gl.bindBuffer(gl.PIXEL_UNPACK_BUFFER, unpackBuffer);
+            }
+            return;
+          }
+        }
+        data = Number(pointer);
+      } else if (unpackBuffer) {
+        data = Number(pointer);
+      } else {
+        data = readBytes(pointer, Math.max(0, number(width) * number(height) * 4));
+      }
       gl.texSubImage2D(number(target), number(level), number(x), number(y), number(width), number(height), number(format), number(type), data);
     },
     glTexSubImage3D: (target, level, x, y, z, width, height, depth, format, type, pointer) => {
