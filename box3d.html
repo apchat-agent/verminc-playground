@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self'; style-src 'self'; connect-src 'self'; img-src data:; base-uri 'none'; form-action 'none'">
+    <title>Box3D physics demo · verminc playground</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="style.css?v=6b4c319">
+    <script type="module" src="box3d-page.js?v=6b4c319"></script>
+  </head>
+  <body>
+    <main class="box3d-page">
+      <nav class="box3d-nav" aria-label="Breadcrumb"><a href="index.html">← verminc playground</a></nav>
+      <header>
+        <div>
+          <p class="eyebrow">PHYSICS · WEBASSEMBLY · WEBGL 2</p>
+          <h1>Box3D physics demo<span aria-hidden="true">_</span></h1>
+        </div>
+        <span class="badge">Runs locally</span>
+      </header>
+      <p class="intro">A stacking pyramid and distance joint, built with the playground’s self-hosted compiler. Open the <strong>Sample</strong> menu to switch scenes.</p>
+      <p id="box3d-status" class="box3d-status" role="status" aria-live="polite">Loading the Box3D scene…</p>
+      <canvas id="box3d-canvas" class="box3d-canvas" width="960" height="640" tabindex="0" aria-label="Box3D physics scene with an ImGui sample menu"></canvas>
+      <footer>Single-threaded simulation · WebGL 2 rendering</footer>
+    </main>
+  </body>
+</html>

@@ -50,6 +50,47 @@ h1 span {
   color: #a6b8c1;
   margin: 20px 0 30px;
 }
+.demo-link {
+  margin: -14px 0 24px;
+}
+.demo-link a {
+  color: #a3e2b9;
+  text-decoration: none;
+  border: 1px solid #3b6050;
+  border-radius: 6px;
+  padding: 8px 12px;
+  display: inline-block;
+}
+.demo-link a:hover,
+.demo-link a:focus-visible {
+  background: #1a3026;
+  outline: 2px solid #a3e2b9;
+  outline-offset: 2px;
+}
+.box3d-page {
+  max-width: 1120px;
+}
+.box3d-nav {
+  margin-bottom: 26px;
+}
+.box3d-nav a {
+  color: #a3e2b9;
+}
+.box3d-canvas {
+  display: block;
+  width: min(100%, 960px);
+  height: auto;
+  margin: 24px auto;
+  border: 1px solid #34444e;
+  background: #0f141f;
+  touch-action: none;
+}
+.box3d-status {
+  color: #a6b8c1;
+}
+.box3d-status[data-state="error"] {
+  color: #ff9c9c;
+}
 .workspace {
   display: grid;
   grid-template-columns: minmax(0,1.25fr) minmax(0,1fr);

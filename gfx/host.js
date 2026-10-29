@@ -1,7 +1,7 @@
 // A small WebGL2 host for the Wasm seam in playground/lib/sokol_all.mc.
 // The module's import signatures are recorded in tmp/GFX-IMPORTS.md.  Any
 // measured call that this triangle host does not implement fails by name.
-import { WasiHost } from "../wasi.js?v=51683fe";
+import { WasiHost } from "../wasi.js?v=6b4c319";
 
 const asNumber = (value) => typeof value === "bigint" ? Number(value) : value;
 const asUnsigned = (value) => Number(BigInt.asUintN(32, BigInt(value)));
@@ -29,6 +29,7 @@ export function createGraphicsHost(canvas) {
   let instance;
   let heap = 32 * 1024 * 1024;
   let raf = 0;
+  let frameCount = 0;
   let quit = false;
   let hostOutput = "";
   let lastPointer = { x: 0, y: 0 };
@@ -418,6 +419,7 @@ export function createGraphicsHost(canvas) {
     gl,
     imports,
     get output() { return hostOutput; },
+    get frameCount() { return frameCount; },
     async run(bytes) {
       resize();
       const result = await WebAssembly.instantiate(bytes, imports);
@@ -438,6 +440,7 @@ export function createGraphicsHost(canvas) {
         if (quit || !instance) return;
         try {
           instance.exports._sapp_wasm_frame(floatBits(time, 64));
+          frameCount++;
         } catch (error) {
           quit = true;
           throw error;
