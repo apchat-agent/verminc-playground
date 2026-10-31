@@ -1,11 +1,11 @@
-import { createGraphicsHost } from "./gfx/host.js?v=6edd6995";
+import { createGraphicsHost } from "./gfx/host.js?v=195a6686";
 
 const canvas = document.querySelector("#box3d-canvas");
 const status = document.querySelector("#box3d-status");
 const host = createGraphicsHost(canvas);
 
 try {
-  const response = await fetch("./box3d.wasm?v=6edd6995");
+  const response = await fetch("./box3d.wasm?v=195a6686");
   if (!response.ok) throw new Error(`could not load Box3D module (${response.status})`);
   await host.run(await response.arrayBuffer());
   window.box3dHost = host;
