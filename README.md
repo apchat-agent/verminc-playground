@@ -13,3 +13,9 @@ to see your change. A formatter error is shown as a diagnostic and your program 
 Files here are build output only (compiler.wasm, the bundled `lib/` modules, examples and formatter source in
 assets.json, and the page). See
 `build.json` for the compiler hash and how it was built.
+
+## License
+
+Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or [MIT license](LICENSE-MIT), at your
+option. The Box3D demo (`box3d.wasm`) contains Box3D code under its own MIT license; see
+[box3d/LICENSE.md](box3d/LICENSE.md).
