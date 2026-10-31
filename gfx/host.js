@@ -1,7 +1,7 @@
 // A small WebGL2 host for the Wasm seam in playground/lib/sokol_all.mc.
 // The module's import signatures are recorded in tmp/GFX-IMPORTS.md.  Any
 // measured call that this triangle host does not implement fails by name.
-import { WasiHost } from "../wasi.js?v=08f9418e";
+import { WasiHost } from "../wasi.js?v=7b0a11d8";
 
 const asNumber = (value) => typeof value === "bigint" ? Number(value) : value;
 const asUnsigned = (value) => Number(BigInt.asUintN(32, BigInt(value)));
