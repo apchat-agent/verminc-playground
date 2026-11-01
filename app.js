@@ -1,4 +1,4 @@
-import { createGraphicsHost } from "./gfx/host.js?v=4db0c410";
+import { createGraphicsHost } from "./gfx/host.js?v=cd8b5ef1";
 
 const $ = (id) => document.getElementById(id);
 let worker;
@@ -89,8 +89,8 @@ document.addEventListener("keydown", (event) => {
 
 async function load() {
   const [compilerResponse, bundleResponse] = await Promise.all([
-    fetch("./compiler.wasm?v=4db0c410"),
-    fetch("./assets.json?v=4db0c410"),
+    fetch("./compiler.wasm?v=cd8b5ef1"),
+    fetch("./assets.json?v=cd8b5ef1"),
   ]);
   if (!compilerResponse.ok || !bundleResponse.ok) {
     throw new Error(
@@ -110,7 +110,7 @@ async function load() {
     $("examples").append(option);
   }
   $("examples").dispatchEvent(new Event("change"));
-  worker = new Worker("./worker.js?v=4db0c410", { type: "module" });
+  worker = new Worker("./worker.js?v=cd8b5ef1", { type: "module" });
   worker.onmessage = async ({ data }) => {
     if (data.type === "ready") {
       state("ready", "Ready. Everything needed is now in this tab.");

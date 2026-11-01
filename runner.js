@@ -1,4 +1,4 @@
-import { runWasi } from "./wasi.js?v=4db0c410";
+import { runWasi } from "./wasi.js?v=cd8b5ef1";
 
 // The browser Worker and Deno acceptance tests use this exact compile/run path.
 export async function compileAndRun(
